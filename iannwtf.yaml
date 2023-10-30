@@ -1,0 +1,19 @@
+name: iannwtf
+channels:
+  - apple
+  - conda-forge
+  - esri
+dependencies:
+  - python=3.9  ## specify desired version
+  - pip
+  - tensorflow-deps ## for tensorflow-macos (apple silicon)
+  - ipykernel
+
+  ## PyPI packages
+  - pip:
+    - tensorflow-macos ## for apple silicon - replace with tensorflow for linux / windows / intel mac
+    - tensorflow-metal  ## optional, but recommended (for Apple Silicon)
+    - matplotlib
+    - numpy
+    - plotly
+
