@@ -76,8 +76,26 @@ class MLPLayer:
         
         if output.shape != (MINIBATCHSIZE, self.num_units):
             raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, {self.num_units}) expected. Got shape {output.shape}")
+        else:
+            return output
 
-
+class MLP:
+    def __init__(self, num_layers: int, units: list, input: np.array, target: np.array):
+        self.num_layers = num_layers
+        self.units = units
+        self.input = input
+        self.target = target
+        self.layers = []
+    
+    def call(self):
+        for i in range(0,self.num_layers-1):
+            layer = MLPLayer(activation_func="sigmoid", num_units=self.units[i], input_size=len(self.input[0]))
+            self.layers.append(layer)
+            self.input = layer.forward_pass(self.input)
+        
+        output_layer = MLPLayer(activation_func="softmax", num_units=self.units[self.num_layers], input_size=len(self.input[0]))   
+        self.layers.append(output_layer)
+        return layer.forward_pass(self.input)
 
 def generate_minibatches(minibatchsize): 
     '''
