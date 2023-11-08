@@ -74,7 +74,7 @@ def generate_minibatches(minibatchsize):
         input_minibatch.append(tuples[m][0])
         target_minibatch.append(tuples[m][1])
 
-
+    return input_minibatch,target_minibatch
 
 
 def main():
