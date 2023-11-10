@@ -8,40 +8,49 @@ activation function for the output layer and a categorical cross entropy functio
 import numpy as np
 import sklearn.datasets
 
-MINIBATCHSIZE = 1
+MINIBATCHSIZE = 2
+MLP_EXAMPLE = [46,10,10]
 
 class SigmoidActivationFunction:
     """The SigmoidActivationFunction class is a manual implementation of the sigmoid function using
     numpy.
     
-    It checks the shape of the preactivation (input) to be valid and sets the activations after the
-    function is applied to the preactivation.
-
-    Attributes:
-        preactivation: Numpy array of size (minibatchsize, num_units) with preactivation matrix.
-        num_units: Integer that specifies 
+    It checks the shape of the preactivation (input) to be valid and returns the activations after the
+    function is applied
     """
-    def __init__(self, preactivation: np.array, num_units: int):
+    def __call__(self, preactivation: np.array, num_units: int):
+        """Call function to calculate activations.
+
+        Calculates a matrix with activations using the sigmoid function.
+        
+        Attributes:
+        preactivation: Numpy array of size (minibatchsize, num_units) with preactivation matrix.
+        num_units: Integer that specifies
+        
+        Returns:
+        matrix with activations
+        """
         if preactivation.shape != (MINIBATCHSIZE, num_units):
             # check size of preactivation matrix and raise error if incorrect
             raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, {num_units}) expected.\
                 Got shape {preactivation.shape}")
-        self.preactivation = preactivation
-        self.activations = np.empty(shape=preactivation.shape)
+        
+        activations = np.empty(shape=preactivation.shape)
+        
+        for row_idx, _ in enumerate(preactivation):
+            for col_idx, _ in enumerate(preactivation[0]):
+                activations[row_idx][col_idx] = 1 / (1 + \
+                    np.exp(preactivation[row_idx][col_idx]))
+        
+        # return activation
+        return activations
 
-    def call(self):
-        """Call function to calculate activations.
-
-        Calculates a matrix with activations using the sigmoid function.
-        """
+    #def backpropagation(self):
         # get index of row and column of each element & calculate the activation.
-        for row_idx, _ in enumerate(self.preactivation):
-            for col_idx, _ in enumerate(self.preactivation[0]):
-                self.activations[row_idx][col_idx] = 1 / (1 + \
-                    np.exp(-self.preactivation[row_idx][col_idx]))
-
-    def backpropagation(self):
-        print('test')
+        #for row_idx, _ in enumerate(self.preactivation):
+        #    for col_idx, _ in enumerate(self.preactivation[0]):
+        #        self.activations[row_idx][col_idx] = (self.preactivation[row_idx][col_idx])*(1-self.preactivation[row_idx][col_idx])
+        
 
 class SoftmaxActivationFunction:
     """The SoftmaxActivationFunction class is a manual implementation of the softmax function using
@@ -49,31 +58,35 @@ class SoftmaxActivationFunction:
     
     It checks the shape of the preactivation (input) to be valid and sets the activations after the
     function is applied to the preactivation. It's used for the final layer of the network.
+    """
+    def __call__(self,preactivation: np.array):
+        """Call function to calculate activations.
 
-    Attributes:
+        Calculates a matrix with activations using the softmax function.
+        
+        Attributes:
         preactivation: Numpy array of size (minibatchsize, 10) with preactivation matrix where 10 is
         the number of classes.
-    """
-    def __init__(self, preactivation: np.array):
+        
+        Returns:
+        matrix with activations
+        """
         if preactivation.shape != (MINIBATCHSIZE, 10):
             # check size of preactivation matrix and raise error if incorrect
             raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, 10) expected. \
                 Got shape {preactivation.shape}")
-        self.preactivation = preactivation
-        self.activations = np.empty(shape=preactivation.shape)
+        
+        activations = np.empty(shape=preactivation.shape)
 
-    def call(self):
-        """Call function to calculate activations.
+        for row_idx, _ in enumerate(preactivation):
+            for col_idx, _ in enumerate(preactivation[0]):
+                activations[row_idx][col_idx] = np.exp(preactivation[row_idx][col_idx]) /\
+                    np.sum(np.exp(preactivation[row_idx]))
+        # return 
+        return activations
 
-        Calculates a matrix with activations using the softmax function.
-        """
-        for row_idx, _ in enumerate(self.preactivation):
-            for col_idx, _ in enumerate(self.preactivation[0]):
-                self.activations[row_idx][col_idx] = np.exp(self.preactivation[row_idx][col_idx]) /\
-                    np.sum(np.exp(self.preactivation[row_idx]))
-
-    def backpropagation(self):
-        print('test')
+    #def backpropagation(self):
+    #    print('test')
 
 class MLPLayer:
     """A single layer for a multi layer perceptron (MLP) with forward and backward pass.
@@ -91,6 +104,8 @@ class MLPLayer:
         self.activation_func = activation_func
         self.num_units = num_units
         self.input_size = input_size
+        self.bias = np.zeros(num_units)
+        self.weights = np.random.normal(loc=0.0, scale=0.2, size=(input_size, num_units))
 
     def forward_pass(self, activations: np.array) -> np.array:
         """Forward pass in the MLP layer.
@@ -113,53 +128,33 @@ class MLPLayer:
 
         if activations.shape != (MINIBATCHSIZE, self.input_size):
             # check size of preactivation matrix and raise error if incorrect
-            raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, {self.input_size}) expected.\
+            raise ValueError(f"Forward Pass Input: Array of shape ({MINIBATCHSIZE}, {self.input_size}) expected.\
                 Got shape {activations.shape}")
 
-        # adding 1s at the end of every row to enable calculations where bias is
-        # incorporated in the weight matrix
-        activations = np.column_stack([activations, 1])
-        # setting random weights with a mu=0 and sigma=0.2
-        weights = np.random.normal(loc=0.0, scale=0.2, size=(len(activations[0])-1, self.num_units))
-        # creating bias vector with zeros
-        bias = np.zeros(shape=(1,self.num_units))
-        # incorporating biases in the weight matrix by stacking the arrays vertically
-        weights = np.vstack([weights,bias])
-
-        if activations.shape != (MINIBATCHSIZE, self.input_size+1):
-            # check size of activation matrix (inputs) and raise error if incorrect
-            raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, {self.input_size+1})\
-                expected. Got shape {activations.shape}")
-        if weights.shape != (self.input_size+1, self.num_units):
-            # check size of weight matrix and raise error if incorrect
-            raise ValueError(f"Numpy Array of shape ({self.input_size+1}, {self.num_units})\
-                expected. Got shape {weights.shape}")
-
         # calculate preactivations by doing matrix multiplication of the activations from the
-        # previous layer (input) matrix and the weights matrix (with bias incorporated)
-        preactivation = np.matmul(activations,weights)
+        # previous layer (input) matrix and the weights matrix
+        prebias = np.matmul(activations, self.weights)
+        preactivation = prebias + self.bias
 
         if preactivation.shape != (MINIBATCHSIZE, self.num_units):
             # check size of preactivation matrix and raise error if incorrect
-            raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, {self.num_units}) expected.\
+            raise ValueError(f"Forward Pass Multiplication Output: Array of shape ({MINIBATCHSIZE}, {self.num_units}) expected.\
                 Got shape {preactivation.shape}")
 
         # check what the specified activation function for the layer is and apply the function
         if self.activation_func == "softmax":
-            softmax = SoftmaxActivationFunction(preactivation = preactivation)
-            softmax.call()
-            output = softmax.activations
+            softmax = SoftmaxActivationFunction()
+            output = softmax(preactivation = preactivation)
         elif self.activation_func == "sigmoid":
-            sigmoid = SigmoidActivationFunction(preactivation = preactivation,\
-                num_units = self.num_units)
-            sigmoid.call()
-            output = sigmoid.activations
+            sigmoid = SigmoidActivationFunction()
+            output = sigmoid(preactivation = preactivation,num_units = self.num_units)
+        else:
+            raise AttributeError(f"Did not get correct input. Must be either 'softmax' or 'sigmoid'. Got {self.activation_func}.")
 
         if output.shape != (MINIBATCHSIZE, self.num_units):
             # check size of output matrix (new activations) and raise error if incorrect
             raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, {self.num_units})\
                 expected. Got shape {output.shape}")
-
         return output
 
 class MLP:
@@ -169,14 +164,14 @@ class MLP:
     perceptrons.
 
     Attributes:
-        num_layers: An integer specifying the number of layers.
+        num__hidden_layers: An integer specifying the number of hidden layers.
         units: A list of integers
         input_data: Numpy array matrix with minibatched input data.
         targets: Numpy array with one hot encoded targets
         layers: List of layers created.
     """
-    def __init__(self, num_layers: int, units: list[int], input_data: np.array, targets: np.array):
-        self.num_layers = num_layers
+    def __init__(self, num_hidden_layers: int, units: list[int], input_data: np.array, targets: np.array):
+        self.num_layers = num_hidden_layers
         self.units = units
         self.input_data = input_data
         self.targets = targets
@@ -194,18 +189,34 @@ class MLP:
         """
         # for all layers (except the final one) create a layer object with a sigmoid activation,
         # append the layer to the list of layers and do a forward pass
+        
+        # input layer
+        input_layer = MLPLayer(activation_func="sigmoid", num_units=self.units[0],\
+                input_size=len(self.input_data[1]))
+        self.layers.append(input_layer)
+        
         for i in range(0,self.num_layers-1):
-            layer = MLPLayer(activation_func="sigmoid", num_units=self.units[i],\
-                input_size=len(self.input_data[0]))
+            print(f"Layer {i}")
+            if i == 0:
+                layer = MLPLayer(activation_func="sigmoid", num_units=self.units[i],\
+                input_size=self.units[0])
+            else:
+                layer = MLPLayer(activation_func="sigmoid", num_units=self.units[i],\
+                    input_size=self.units[i-1])
             self.layers.append(layer)
-            self.input_data = layer.forward_pass(self.input_data)
-
         # create the output layer with a softmax activation function, append the layer to the
-        # list of layers and do a forward pass
+        # list of layers and do a forward pass for all layers
+        print(f"Output Layer")
         output_layer = MLPLayer(activation_func="softmax", num_units=self.units[self.num_layers-1],\
-            input_size=len(self.input_data[0]))   
+            input_size=self.units[self.num_layers-1])
         self.layers.append(output_layer)
-        return layer.forward_pass(self.input_data)
+        
+        for layer in self.layers:
+            print(f"Act. Func.: {layer.activation_func}, Input: {self.input_data}")
+            self.input_data = layer.forward_pass(self.input_data)
+        
+        print("MLP Result Output Layer Forward:\n", self.input_data)
+        return self.input_data
 
 class CategoricalCrossEntropy:
     """Calculate the categorical cross entropy.
@@ -227,7 +238,7 @@ class CategoricalCrossEntropy:
         """
         losses = []
         # match inputs and targets, calculate individual loss and append to list, sum all losses
-        for input_data,targets in zip(input_data,targets):
+        for input_data,targets in zip(self.input_data,self.targets):
             # adding a tiny number to the input_data (10**-10000) ensures numerical stability in
             # case the input_data is 0 (numpy returns -inf for log(0))
             loss = -np.sum(targets * np.log(input_data + 10**-10000))
@@ -235,7 +246,7 @@ class CategoricalCrossEntropy:
         self.loss = np.sum(losses)
         return self.loss
 
-    def backpropagation(self):
+    '''def backpropagation(self):
         """Runs the backpropagation and adjusts the weights.
 
         Raises:
@@ -248,9 +259,21 @@ class CategoricalCrossEntropy:
             raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, 1) expected.\
                 Got shape {self.loss.shape}")
 
-        #if output.shape != (MINIBATCHSIZE, 1):
-        #    raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, 1) expected.\
-            # Got shape {output.shape}")
+        jacobians = []
+        for input_data,targets in zip(self.input_data,self.targets):
+            # adding a tiny number to the input_data (10**-10000) ensures numerical stability in
+            # case the input_data is 0 (numpy returns -inf for log(0))
+            jacobian = -targets/(input_data + 10**-10000)
+            jacobians.append(jacobian)
+
+            #derivative = -targets/(input_data + 10**-10000)
+        print(jacobians)
+        output = np.sum(jacobians)
+        print("Output:\n", output)
+
+        if output.shape != (MINIBATCHSIZE, 1):
+            raise ValueError(f"Numpy Array of shape ({MINIBATCHSIZE}, 1) expected.\
+                Got shape {output.shape}")'''
 
 def one_hot_encoding(targets: np.array,num_classes) -> np.array:
     """Creates one hot encodings of target numpy array.
@@ -333,8 +356,14 @@ def generate_minibatches(minibatchsize):
 def main():
     np.random.seed(42)
     inputs,targets  = generate_minibatches(MINIBATCHSIZE)
-    mlp = MLP(num_layers=5, units=[5,4,4,4,3], input_data = inputs, targets = targets)
-    print(mlp.call())
+    units = MLP_EXAMPLE
+    num_hidden_layers = len(units) - 2 # minus input and output layer
+    mlp = MLP(num_hidden_layers=num_hidden_layers, units=units, input_data = inputs, targets = targets)
+    result_forward = mlp.call()
+    print(result_forward)
+    #cce = CategoricalCrossEntropy(result_forward, targets)
+    #cce_result = cce.backpropagation()
+    #print("CCE Final:\n", cce_result)
 
 if __name__ == "__main__":
     main()
