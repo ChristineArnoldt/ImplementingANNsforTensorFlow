@@ -17,4 +17,5 @@ dependencies:
     - numpy
     - plotly
     - scikit-learn
+    - tensorflow-datasets
 
